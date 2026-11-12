@@ -4,11 +4,18 @@ public partial class SceneViewWidget : ResourceLibrary.IEventListener
 {
 	private PopupDialogWidget _externalChangesDialog;
 
-	void ResourceLibrary.IEventListener.OnExternalChanges( GameResource resource )
+	void ResourceLibrary.IEventListener.OnExternalChangesPostLoad( GameResource resource )
 	{
 		// Scenes are edited from their own copy of the source, so they're matched to their session by path
 		if ( resource is SceneFile sceneFile && SceneEditorSession.Resolve( sceneFile ) != Session ) return;
 		if ( resource is not SceneFile && resource != Session.Scene.Source ) return;
+
+		// Nothing unsaved to lose, just load the new version
+		if ( !Session.HasUnsavedChanges )
+		{
+			Session.Reload();
+			return;
+		}
 
 		if ( _externalChangesDialog.IsValid() ) // already showing one
 			return;
@@ -34,6 +41,7 @@ public partial class SceneViewWidget : ResourceLibrary.IEventListener
 			Clicked = () =>
 			{
 				session.Reload();
+				session.HasUnsavedChanges = false; // matches the file again
 				popup.Destroy();
 			}
 		} );
